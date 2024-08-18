@@ -23,6 +23,7 @@ require (
 	filippo.io/edwards25519 v1.0.0-rc.1
 	github.com/cockroachdb/pebble v0.0.0-20231210175920-b4d301aeb46a
 	github.com/deiu/rdf2go v0.0.0-20240619132609-81222e324bb9
+	github.com/improbable-eng/grpc-web v0.15.0
 	github.com/libp2p/go-libp2p v0.35.1
 	github.com/libp2p/go-libp2p-gostream v0.6.0
 	github.com/libp2p/go-libp2p-kad-dht v0.23.0
@@ -35,7 +36,9 @@ require (
 )
 
 require (
+	github.com/cenkalti/backoff/v4 v4.1.1 // indirect
 	github.com/deiu/gon3 v0.0.0-20230411081920-f0f8f879f597 // indirect
+	github.com/desertbit/timer v0.0.0-20180107155436-c41aec40b27f // indirect
 	github.com/hashicorp/golang-lru/arc/v2 v2.0.7 // indirect
 	github.com/linkeddata/gojsonld v0.0.0-20170418210642-4f5db6791326 // indirect
 	github.com/pion/datachannel v1.5.6 // indirect
@@ -54,10 +57,12 @@ require (
 	github.com/pion/transport/v2 v2.2.5 // indirect
 	github.com/pion/turn/v2 v2.1.6 // indirect
 	github.com/pion/webrtc/v3 v3.2.40 // indirect
+	github.com/rs/cors v1.7.0 // indirect
 	github.com/rychipman/easylex v0.0.0-20160129204217-49ee7767142f // indirect
 	go.opentelemetry.io/otel v1.14.0 // indirect
 	go.opentelemetry.io/otel/trace v1.14.0 // indirect
 	go.uber.org/mock v0.4.0 // indirect
+	nhooyr.io/websocket v1.8.7 // indirect
 )
 
 require (

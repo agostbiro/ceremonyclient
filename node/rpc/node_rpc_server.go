@@ -3,8 +3,9 @@ package rpc
 import (
 	"bytes"
 	"context"
+	"github.com/improbable-eng/grpc-web/go/grpcweb"
+	"log"
 	"net/http"
-
 	"source.quilibrium.com/quilibrium/monorepo/node/config"
 
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -27,15 +28,16 @@ import (
 
 type RPCServer struct {
 	protobufs.UnimplementedNodeServiceServer
-	listenAddrGRPC   string
-	listenAddrHTTP   string
-	logger           *zap.Logger
-	dataProofStore   store.DataProofStore
-	clockStore       store.ClockStore
-	keyManager       keys.KeyManager
-	pubSub           p2p.PubSub
-	masterClock      *master.MasterClockConsensusEngine
-	executionEngines []execution.ExecutionEngine
+	listenAddrGRPC    string
+	listenAddrGRPCWeb string
+	listenAddrHTTP    string
+	logger            *zap.Logger
+	dataProofStore    store.DataProofStore
+	clockStore        store.ClockStore
+	keyManager        keys.KeyManager
+	pubSub            p2p.PubSub
+	masterClock       *master.MasterClockConsensusEngine
+	executionEngines  []execution.ExecutionEngine
 }
 
 // GetFrameInfo implements protobufs.NodeServiceServer.
@@ -339,6 +341,7 @@ func (r *RPCServer) GetPeerManifests(
 
 func NewRPCServer(
 	listenAddrGRPC string,
+	listenAddrGRPCWeb string,
 	listenAddrHTTP string,
 	logger *zap.Logger,
 	dataProofStore store.DataProofStore,
@@ -349,15 +352,16 @@ func NewRPCServer(
 	executionEngines []execution.ExecutionEngine,
 ) (*RPCServer, error) {
 	return &RPCServer{
-		listenAddrGRPC:   listenAddrGRPC,
-		listenAddrHTTP:   listenAddrHTTP,
-		logger:           logger,
-		dataProofStore:   dataProofStore,
-		clockStore:       clockStore,
-		keyManager:       keyManager,
-		pubSub:           pubSub,
-		masterClock:      masterClock,
-		executionEngines: executionEngines,
+		listenAddrGRPC:    listenAddrGRPC,
+		listenAddrGRPCWeb: listenAddrGRPCWeb,
+		listenAddrHTTP:    listenAddrHTTP,
+		logger:            logger,
+		dataProofStore:    dataProofStore,
+		clockStore:        clockStore,
+		keyManager:        keyManager,
+		pubSub:            pubSub,
+		masterClock:       masterClock,
+		executionEngines:  executionEngines,
 	}, nil
 }
 
@@ -384,6 +388,41 @@ func (r *RPCServer) Start() error {
 			panic(err)
 		}
 	}()
+
+	if r.listenAddrGRPCWeb != "" {
+		multiAddress, err := multiaddr.NewMultiaddr(r.listenAddrGRPCWeb)
+		if err != nil {
+			return errors.Wrap(err, "start")
+		}
+
+		netAddress, err := mn.ToNetAddr(multiAddress)
+		if err != nil {
+			return errors.Wrap(err, "start")
+		}
+
+		wrappedGrpc := grpcweb.WrapServer(s,
+			grpcweb.WithOriginFunc(func(origin string) bool {
+				// Allow all origins for CORS; customize as needed
+				return true
+			}),
+			grpcweb.WithAllowNonRootResource(true),
+		)
+		httpServer := &http.Server{
+			Addr: netAddress.String(),
+			Handler: http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+				if wrappedGrpc.IsGrpcWebRequest(req) || wrappedGrpc.IsAcceptableGrpcCorsRequest(req) || wrappedGrpc.IsGrpcWebSocketRequest(req) {
+					wrappedGrpc.ServeHTTP(resp, req)
+				} else {
+					http.NotFound(resp, req)
+				}
+			}),
+		}
+
+		log.Println("gRPC-Web server listening on " + netAddress.String())
+		if err := httpServer.ListenAndServe(); err != nil {
+			log.Fatalf("Failed to serve: %v", err)
+		}
+	}
 
 	if r.listenAddrHTTP != "" {
 		m, err := multiaddr.NewMultiaddr(r.listenAddrHTTP)

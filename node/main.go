@@ -156,6 +156,9 @@ func signatureCheckDefault() bool {
 }
 
 func main() {
+	// We only want to test the rpc, no need to full throttle. CLI arg doesn't seem to work and 4 cores is the minimum.
+	runtime.GOMAXPROCS(4)
+
 	flag.Parse()
 
 	if *signatureCheck {
@@ -409,9 +412,9 @@ func main() {
 
 	fmt.Println("Loading ceremony state and starting node...")
 
-	if !*integrityCheck {
-		go spawnDataWorkers(nodeConfig)
-	}
+	// if !*integrityCheck {
+	// 	go spawnDataWorkers(nodeConfig)
+	// }
 
 	kzg.Init()
 
@@ -444,6 +447,7 @@ func main() {
 	if nodeConfig.ListenGRPCMultiaddr != "" {
 		srv, err := rpc.NewRPCServer(
 			nodeConfig.ListenGRPCMultiaddr,
+			nodeConfig.ListenGRPCWebMultiaddr,
 			nodeConfig.ListenRestMultiaddr,
 			node.GetLogger(),
 			node.GetDataProofStore(),
@@ -465,11 +469,11 @@ func main() {
 		}()
 	}
 
-	node.Start()
+	//node.Start()
 
 	<-done
-	stopDataWorkers()
-	node.Stop()
+	// stopDataWorkers()
+	// node.Stop()
 }
 
 var dataWorkers []*exec.Cmd
